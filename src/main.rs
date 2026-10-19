@@ -207,8 +207,8 @@ fn auth_revoke(params: &Value) -> Result<Value, RpcError> {
                 .stderr(Stdio::null())
                 .status();
         }
-    } else if let Ok(home) = std::env::var("HOME") {
-        let _ = std::fs::remove_file(format!("{home}/.grok-sub.json"));
+    } else if let Some(cache) = setup::cache_path() {
+        let _ = std::fs::remove_file(cache);
     }
     Ok(json!({}))
 }
