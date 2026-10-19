@@ -11,6 +11,14 @@ pub const AUTH_CACHED: &str = "cached_token";
 
 const BINARY_ENV: &str = "GRAY_GROK_SUB_COMMAND";
 
+/// The user's home dir: `$HOME`, or `%USERPROFILE%` on Windows where
+/// HOME is typically unset for a natively-spawned process.
+fn home_dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(std::path::PathBuf::from)
+}
+
 pub fn resolve_command() -> Option<String> {
     if let Ok(explicit) = std::env::var(BINARY_ENV) {
         let explicit = explicit.trim().to_string();
@@ -82,10 +90,8 @@ pub fn api_key() -> Option<String> {
     read_api_key_cache()
 }
 
-fn cache_path() -> Option<std::path::PathBuf> {
-    std::env::var("HOME")
-        .ok()
-        .map(|h| std::path::Path::new(&h).join(".grok-sub.json"))
+pub fn cache_path() -> Option<std::path::PathBuf> {
+    home_dir().map(|h| h.join(".grok-sub.json"))
 }
 
 pub fn write_api_key_cache(key: &str) -> std::io::Result<()> {
@@ -146,10 +152,12 @@ pub fn acp_env() -> Vec<(String, String)> {
 }
 
 fn which_on_path(name: &str) -> Option<String> {
-    let path = std::env::var("PATH").ok()?;
-    for dir in path.split(':') {
-        let candidate = format!("{dir}/{name}");
-        if std::fs::metadata(&candidate).map(|m| m.is_file()).unwrap_or(false) {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        for candidate in exe_candidates(&dir, name) {
+            if !std::fs::metadata(&candidate).map(|m| m.is_file()).unwrap_or(false) {
+                continue;
+            }
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -159,8 +167,21 @@ fn which_on_path(name: &str) -> Option<String> {
                     }
                 }
             }
-            return Some(candidate);
+            return Some(candidate.to_string_lossy().into_owned());
         }
     }
     None
+}
+
+/// The executable spellings of `name` inside `dir`: the name verbatim,
+/// plus each `%PATHEXT%` suffix on Windows (`grok.exe`, `grok.cmd`, …).
+fn exe_candidates(dir: &std::path::Path, name: &str) -> Vec<std::path::PathBuf> {
+    let mut v = vec![dir.join(name)];
+    if cfg!(windows) {
+        let exts = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into());
+        for ext in exts.split(';').filter(|e| !e.is_empty()) {
+            v.push(dir.join(format!("{name}{ext}")));
+        }
+    }
+    v
 }
