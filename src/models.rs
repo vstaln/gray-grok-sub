@@ -44,7 +44,11 @@ fn from_cli() -> Vec<Value> {
             .next()
             .unwrap_or("")
             .trim();
-        if !slug.is_empty() && slug.chars().all(|c| c.is_ascii_alphanumeric() || "-._".contains(c)) {
+        if !slug.is_empty()
+            && slug
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "-._".contains(c))
+        {
             out.push(json!({"modelId": slug, "name": slug}));
         }
     }

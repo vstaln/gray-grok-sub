@@ -4,7 +4,7 @@
 //! subscription feed, and the `grok` CLI has no usage command. The card
 //! reports the connection honestly with no fabricated windows.
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::setup;
 

@@ -128,8 +128,12 @@ impl Driver for GrokDriver {
     ) -> Result<(), String> {
         // "grok-build" is a product placeholder meaning "keep current" —
         // never sent on the wire.
-        let effort = effort
-            .or_else(|| overrides.iter().find(|(k, _)| k == "effort").map(|(_, v)| v.as_str()));
+        let effort = effort.or_else(|| {
+            overrides
+                .iter()
+                .find(|(k, _)| k == "effort")
+                .map(|(_, v)| v.as_str())
+        });
         let meta = match effort {
             Some(e) if valid_effort_token(e) => json!({"reasoningEffort": e}),
             _ => Value::Null,
@@ -139,13 +143,15 @@ impl Driver for GrokDriver {
                 return Ok(());
             }
             // Effort change alone still sends set_model on the current model.
-            return client.set_model(session_id, "grok-build", meta).map_err(|e| {
-                if e.contains("-32601") || e.contains("not found") {
-                    format!("unknown grok model `grok-build`")
-                } else {
-                    format!("grok set_model: {e}")
-                }
-            });
+            return client
+                .set_model(session_id, "grok-build", meta)
+                .map_err(|e| {
+                    if e.contains("-32601") || e.contains("not found") {
+                        format!("unknown grok model `grok-build`")
+                    } else {
+                        format!("grok set_model: {e}")
+                    }
+                });
         }
         client.set_model(session_id, model, meta).map_err(|e| {
             if e.contains("-32601") || e.contains("not found") || e.contains("Invalid") {

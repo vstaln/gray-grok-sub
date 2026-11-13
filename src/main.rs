@@ -11,8 +11,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use grok_sub::{driver::GrokDriver, models, usage, setup};
 use grok_sub::setup::AuthState;
+use grok_sub::{driver::GrokDriver, models, setup, usage};
 
 const PROVIDER_ID: &str = "grok";
 const AUTH_CLI: &str = "grok-login";
@@ -44,6 +44,7 @@ fn manifest() -> Value {
             },
         }],
         "commands": ["/grok"],
+        "command_descriptions": {"/grok": "switch to Grok models"},
     })
 }
 
@@ -89,7 +90,10 @@ fn authed() -> bool {
 }
 
 fn auth_start(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
-    let method = params.get("auth_method").and_then(Value::as_str).unwrap_or_default();
+    let method = params
+        .get("auth_method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if method == AUTH_KEY {
         if setup::api_key().is_some() {
             return Ok(json!({
@@ -129,7 +133,10 @@ fn auth_start(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
 }
 
 fn auth_poll(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
-    let op_id = params.get("operation_id").and_then(Value::as_str).unwrap_or_default();
+    let op_id = params
+        .get("operation_id")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if op_id.is_empty() {
         return Ok(if authed() {
             json!({"state": "completed", "credential": login_material()})
@@ -168,7 +175,10 @@ fn auth_poll(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
 }
 
 fn auth_cancel(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
-    let op_id = params.get("operation_id").and_then(Value::as_str).unwrap_or_default();
+    let op_id = params
+        .get("operation_id")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if let Some(mut op) = ops.lock().unwrap().remove(op_id) {
         if let Some(mut c) = op.child.take() {
             let _ = c.kill();
@@ -179,7 +189,10 @@ fn auth_cancel(ops: &Ops, params: &Value) -> Result<Value, RpcError> {
 }
 
 fn auth_refresh(params: &Value) -> Result<Value, RpcError> {
-    let method = params.get("auth_method").and_then(Value::as_str).unwrap_or_default();
+    let method = params
+        .get("auth_method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if method == AUTH_KEY {
         let key = setup::api_key().ok_or_else(|| unavailable("XAI_API_KEY not set"))?;
         let _ = setup::write_api_key_cache(&key);
@@ -197,7 +210,10 @@ fn auth_refresh(params: &Value) -> Result<Value, RpcError> {
 }
 
 fn auth_revoke(params: &Value) -> Result<Value, RpcError> {
-    let method = params.get("auth_method").and_then(Value::as_str).unwrap_or_default();
+    let method = params
+        .get("auth_method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if method == AUTH_CLI {
         if let Some(bin) = setup::resolve_command() {
             let _ = Command::new(bin)
@@ -241,7 +257,10 @@ fn gate_auth(method: &str) -> Result<(), RpcError> {
 }
 
 fn provider_models(params: &Value) -> Result<Value, RpcError> {
-    let method = params.get("auth_method").and_then(Value::as_str).unwrap_or_default();
+    let method = params
+        .get("auth_method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     gate_auth(method)?;
     if let Some(key) = params
         .get("credential")
@@ -259,36 +278,47 @@ fn provider_models(params: &Value) -> Result<Value, RpcError> {
     }))
 }
 
-fn provider_chat(
-    intents: &Intents,
-    pool: &Arc<Pool>,
-    params: &Value,
-) -> Result<Value, RpcError> {
-    let provider = params.get("provider").and_then(Value::as_str).unwrap_or_default();
+fn provider_chat(intents: &Intents, pool: &Arc<Pool>, params: &Value) -> Result<Value, RpcError> {
+    let provider = params
+        .get("provider")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if provider != PROVIDER_ID {
         return Err(RpcError::Protocol("unknown provider".into()));
     }
-    let method = params.get("auth_method").and_then(Value::as_str).unwrap_or_default();
+    let method = params
+        .get("auth_method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     gate_auth(method)?;
-    let model = params.get("model").and_then(Value::as_str).unwrap_or_default();
+    let model = params
+        .get("model")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     let pool2 = pool.clone();
-    let turn: TurnFn = Arc::new(move |raw: &[u8], cancel: &AtomicBool| {
-        session::run_turn(&pool2, raw, cancel)
-    });
+    let turn: TurnFn =
+        Arc::new(move |raw: &[u8], cancel: &AtomicBool| session::run_turn(&pool2, raw, cancel));
     let (relay_url, relay_token) =
         relay::mint_turn(intents, model, turn, TOKEN_PREFIX).map_err(unavailable)?;
     Ok(json!({"relay_url": relay_url, "relay_token": relay_token}))
 }
 
 fn command_run(params: &Value) -> Result<Value, RpcError> {
-    let name = params.get("name").and_then(Value::as_str).unwrap_or_default();
+    let name = params
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if name != "/grok" {
         return Err(RpcError::Protocol(format!("unknown command {name}")));
     }
     let argv: Vec<String> = params
         .get("argv")
         .and_then(Value::as_array)
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
         .unwrap_or_default();
     match argv.first().map(String::as_str).unwrap_or("") {
         "" => Ok(json!({})),
