@@ -128,10 +128,14 @@ pub fn acp_argv() -> Vec<String> {
     let mut args: Vec<String> = Vec::new();
     match mode.trim() {
         "approval-required" => args.extend(["--permission-mode", "default"].map(str::to_string)),
-        "auto-accept-edits" => args.extend(["--permission-mode", "acceptEdits"].map(str::to_string)),
+        "auto-accept-edits" => {
+            args.extend(["--permission-mode", "acceptEdits"].map(str::to_string))
+        }
         "auto" => args.extend(["--permission-mode", "auto"].map(str::to_string)),
         "full-access" => {
-            return ["agent", "--always-approve", "stdio"].map(str::to_string).to_vec()
+            return ["agent", "--always-approve", "stdio"]
+                .map(str::to_string)
+                .to_vec()
         }
         _ => {}
     }
@@ -155,7 +159,10 @@ fn which_on_path(name: &str) -> Option<String> {
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
         for candidate in exe_candidates(&dir, name) {
-            if !std::fs::metadata(&candidate).map(|m| m.is_file()).unwrap_or(false) {
+            if !std::fs::metadata(&candidate)
+                .map(|m| m.is_file())
+                .unwrap_or(false)
+            {
                 continue;
             }
             #[cfg(unix)]
