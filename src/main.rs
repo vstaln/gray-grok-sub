@@ -43,6 +43,7 @@ fn manifest() -> Value {
                 "authorization": {"kind": "bearer", "secret_name": "relay_token"},
             },
         }],
+        "description": "drive",
         "commands": ["/grok"],
         "command_descriptions": {"/grok": "switch to Grok models"},
     })
