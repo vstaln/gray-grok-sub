@@ -147,7 +147,7 @@ impl Driver for GrokDriver {
                 .set_model(session_id, "grok-build", meta)
                 .map_err(|e| {
                     if e.contains("-32601") || e.contains("not found") {
-                        format!("unknown grok model `grok-build`")
+                        "unknown grok model `grok-build`".to_string()
                     } else {
                         format!("grok set_model: {e}")
                     }
