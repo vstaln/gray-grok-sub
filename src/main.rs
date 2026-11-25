@@ -1,8 +1,8 @@
 //! grok-sub — Gray sidecar that relays chat turns to the Grok CLI's
 //! `grok agent stdio` ACP subprocess (t3code GrokDriver parity, model role).
 
-use acp_bridge::relay::{self, Intents, TurnFn};
-use acp_bridge::session::{self, Pool};
+use gray_acp::relay::{self, Intents, TurnFn};
+use gray_acp::session::{self, Pool};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, Write};
