@@ -1,11 +1,11 @@
 //! Model catalog: initialize._meta.modelState (no authenticate — it can
 //! open a browser) → `grok models` text scrape → grok-build fallback.
 
-use acp_bridge::acp::{AcpClient, SpawnSpec};
+use gray_acp::acp::{AcpClient, SpawnSpec};
 use serde_json::{json, Value};
 
 use crate::driver::GrokDriver;
-use acp_bridge::session::Driver;
+use gray_acp::session::Driver;
 
 /// modelState rows from a bare initialize (ModelInfo {modelId, name, _meta}).
 fn from_initialize() -> Option<Vec<Value>> {
